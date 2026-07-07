@@ -1,0 +1,43 @@
+---
+config:
+  theme: neo
+---
+graph TD
+    Alert[🚨 Incident Alert / Telemetry Spike] --> Gate[MCP Gateway Bus]
+    subgraph Orchestration Layer
+        Orch{Orchestrator Node}
+        Triage(1. Triage Agent)
+        Diag(2. Diagnostic Agent)
+        Remed(3. Remediation Agent)
+        Gov(4. Governance Agent)
+        Doc(5. Documentation Agent)
+        
+        Orch --> Triage
+        Orch --> Diag
+        Orch --> Remed
+        Orch --> Gov
+        Orch --> Doc
+    end
+    subgraph Memory Architecture
+        Episodic[(Episodic Memory<br>Redis - Active Incident)]
+        Semantic[(Semantic Memory<br>VectorDB - Post-mortems)]
+        Config[(Config Memory<br>PostgreSQL - RBAC/State)]
+    end
+    Orch <--> Episodic
+    Diag <--> Semantic
+    Remed <--> Semantic
+    Gov <--> Config
+    Doc --> Semantic
+    subgraph Execution Boundary
+        Gate[MCP Gateway Bus / API Router]
+    end
+    Triage --> Gate
+    Diag --> Gate
+    Remed --> Gate
+    Gov --> Gate
+    Gate --> Obs[Observability APIs<br>Datadog / Prometheus]
+    Gate --> Topo[Service Topology<br>Service Mesh]
+    Gate --> HITL{Human-in-the-Loop<br>Slack / PagerDuty}
+    HITL -- Approved --> Exec[Infrastructure Execution<br>Kubernetes / AWS / CI-CD]
+    HITL -- Denied / Needs Info --> Orch
+    Exec --> Doc
