@@ -1,98 +1,100 @@
-graph TD
-    %% External Triggers
-    Alert[🚨 Alert / Telemetry Spike]:::sky --> Gate[MCP Gateway Bus]:::orange
-    
-    %% Core Orchestration
-    subgraph Orchestration Layer
-        Orch{Orchestrator Node}:::indigo
-        Gov(Governance & Safety Agent):::red
-        Doc(Documentation Agent):::red
-        
-        %% Initial Alert Routing
-        Orch --> Gov
-        Orch --> Doc
-    end
+---
+config:
+  theme: neo
+---
+flowchart TB
+ subgraph Orchestration_Layer["Orchestration Layer"]
+        Orch{"Orchestrator Node"}
+        Gov("Governance and Safety Agent")
+        Doc("Documentation Agent")
+  end
+ subgraph External_Federation["External Agent Federation - A2A Protocol"]
+        A2A{{"A2A Gateway / Adapter"}}
+        Cortex["Cortex Ops Agent<br>existing external system"]
+        FuturePlug[/"Reserved Interface<br>for future external agents"/]
+  end
+ subgraph Domain_Agents["DomainAgents / Brains"]
+        Triage("Triage and Ingestion Agent")
+        CompBrain("Compute DomainAgent")
+        NetBrain("Network DomainAgent")
+        StoreBrain("Storage DomainAgent")
+        PlatBrain("Platform DomainAgent")
+  end
+ subgraph Memory_Architecture["Memory Architecture"]
+        Episodic[("Episodic Memory<br>Redis - Active State")]
+        Semantic[("Semantic Memory<br>VectorDB - RAG / Postmortems")]
+        Config[("Config Memory<br>PostgreSQL - RBAC / Rules")]
+  end
+ subgraph Operators["Deterministic Operators / Hands"]
+        CompHand["Compute Operator<br>Node/Pod scaling"]
+        NetHand["Network Operator<br>OVN/Policies"]
+        StoreHand["Storage Operator<br>Ceph/OSD"]
+        PlatHand["Platform Operator<br>Upgrades/Certs"]
+  end
+    Alert["🚨 Alert / Telemetry Spike"] --> Gate["MCP / Api Gateway Bus<br>Tool and Data Router"]
+    ACM["ACM api"] --> Gate
+    GitOps_Api["GitOps api"] --> Gate
 
-    %% The Domain Brains (Diagnostic AI)
-    subgraph DomainAgents / Brains
-        Triage(Triage & Ingestion Agent):::teal
-        CompBrain(Compute DomainAgent):::teal
-        NetBrain(Network DomainAgent):::teal
-        StoreBrain(Storage DomainAgent):::teal
-        PlatBrain(Platform DomainAgent):::teal
-        
-        %% Routing from Orchestrator based on Context
-        Orch --> Triage
-        Orch --> CompBrain
-        Orch --> NetBrain
-        Orch --> StoreBrain
-        Orch --> PlatBrain
-    end
-
-    %% The Memory Architecture
-    subgraph Memory Architecture
-        Episodic[(Episodic Memory<br>Redis - Active State)]:::violet
-        Semantic[(Semantic Memory<br>VectorDB - RAG/Post-mortems)]:::violet
-        Config[(Config Memory<br>PostgreSQL - RBAC/Rules)]:::violet
-    end
-
-    %% Memory Binding
-    Orch <--> Episodic
+    Obs[("Observability APIs<br>Datadog / Prometheus")] --> Gate
+    Topo[("Service Mesh Topology")] --> Gate
+    Gate --> Orch
+    Orch --> Gov & Doc & Triage & CompBrain & NetBrain & StoreBrain & PlatBrain
+    A2A <--> Cortex
+    A2A -. reserved, unconnected today .-> FuturePlug
+    Orch <--> A2A & Episodic
     CompBrain <--> Semantic
     NetBrain <--> Semantic
     StoreBrain <--> Semantic
     PlatBrain <--> Semantic
     Gov <--> Config
     Doc --> Semantic
-
-    %% Execution Boundary
-    subgraph Execution Boundary
-        Gate[MCP Gateway Bus / API Router]:::orange
-    end
-
-    %% Routing AI Decisions to the Gateway
-    Triage --> Gate
-    CompBrain --> Gate
-    NetBrain --> Gate
-    StoreBrain --> Gate
-    PlatBrain --> Gate
-    Gov --> Gate
-
-    %% The HITL Gate (Safety)
-    Gate --> HITL{Human-in-the-Loop<br>Slack / PagerDuty}:::red
-
-    %% The Deterministic Operators (Hands)
-    subgraph Deterministic Operators / Hands
-        CompHand[Compute Operator<br>Node/Pod scaling]:::green
-        NetHand[Network Operator<br>OVN/Policies]:::green
-        StoreHand[Storage Operator<br>Ceph/OSD]:::green
-        PlatHand[Platform Operator<br>Upgrades/Certs]:::green
-    end
-
-    %% Secure Execution Flow
-    HITL -- Approved Action --> CompHand
-    HITL -- Approved Action --> NetHand
-    HITL -- Approved Action --> StoreHand
-    HITL -- Approved Action --> PlatHand
-    
-    %% Loop back if Denied
+    Triage --> Gate2["MCP/Api Gateway Bus<br>Action Router"]
+    CompBrain --> Gate2
+    NetBrain --> Gate2
+    StoreBrain --> Gate2
+    PlatBrain --> Gate2
+    Gov --> Gate2
+    Gate2 --> HITL{"Human-in-the-Loop<br>Slack / PagerDuty"}
+    HITL -- Approved Action --> CompHand & NetHand & StoreHand & PlatHand
     HITL -- Denied / Manual Intervention --> Orch
+    CompHand --> Verify("Execution Validation Agent")
+    NetHand --> Verify
+    StoreHand --> Verify
+    PlatHand --> Verify
+    Verify -- Confirmed Resolved --> Doc
+    Verify -- Regressed / Not Fixed --> Orch
 
-    %% Observability Inputs
-    Gate --> Obs[Observability APIs<br>Datadog / Prometheus]:::sky
-    Gate --> Topo[Service Mesh Topology]:::sky
-    
-    %% Closing the Loop
-    CompHand --> Doc
-    NetHand --> Doc
-    StoreHand --> Doc
-    PlatHand --> Doc
-
-    %% Color Definitions
-    classDef indigo stroke:#818cf8,fill:#eef2ff;
-    classDef teal stroke:#2dd4bf,fill:#f0fdfa;
-    classDef violet stroke:#a78bfa,fill:#f5f3ff;
-    classDef orange stroke:#fb923c,fill:#fff7ed;
-    classDef red stroke:#f87171,fill:#fef2f2;
-    classDef green stroke:#4ade80,fill:#f0fdf4;
-    classDef sky stroke:#38bdf8,fill:#f0f9ff;
+     Orch:::indigo
+     Gov:::red
+     Doc:::red
+     A2A:::brown
+     Cortex:::brown
+     FuturePlug:::dashedgray
+     Triage:::teal
+     CompBrain:::teal
+     NetBrain:::teal
+     StoreBrain:::teal
+     PlatBrain:::teal
+     Episodic:::violet
+     Semantic:::violet
+     Config:::violet
+     CompHand:::green
+     NetHand:::green
+     StoreHand:::green
+     PlatHand:::green
+     Alert:::sky
+     Gate:::orange
+     Obs:::sky
+     Topo:::sky
+     Gate2:::orange
+     HITL:::red
+     Verify:::teal
+    classDef indigo stroke:#818cf8,fill:#eef2ff
+    classDef teal stroke:#2dd4bf,fill:#f0fdfa
+    classDef violet stroke:#a78bfa,fill:#f5f3ff
+    classDef orange stroke:#fb923c,fill:#fff7ed
+    classDef red stroke:#f87171,fill:#fef2f2
+    classDef green stroke:#4ade80,fill:#f0fdf4
+    classDef sky stroke:#38bdf8,fill:#f0f9ff
+    classDef brown stroke:#b45309,fill:#fffbeb
+    classDef dashedgray stroke:#9ca3af,fill:#f9fafb,stroke-dasharray: 5 5
